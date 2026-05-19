@@ -1,129 +1,114 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { storage } from '@/lib/storage';
-import { uid } from '@/lib/id';
-import type { User } from '@/types';
+import { storage, STORAGE_KEYS } from '@/lib/storage';
+import { newId } from '@/lib/id';
+import type { AuthResult, PendingHrRequest, Role, SessionUser, User } from '@/types';
 
-type StoredUser = User & { password: string; approved: boolean };
-
-export type AuthResult =
-  | { ok: true; user: User; needsApproval?: boolean }
-  | { ok: false; error: string; needsApproval?: boolean };
-
-type AuthContextValue = {
-  user: User | null;
-  users: StoredUser[];
+interface AuthContextValue {
+  user: SessionUser | null;
   login: (email: string, password: string) => AuthResult;
   signup: (input: {
     fullName: string;
     email: string;
     password: string;
-    role: 'hr' | 'public';
+    role: Role;
   }) => AuthResult;
   logout: () => void;
-  approveUser: (id: string) => void;
-  rejectUser: (id: string) => void;
-  refreshUsers: () => void;
-};
+}
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const USERS_KEY = 'hireflow.users';
-const SESSION_KEY = 'hireflow.session';
+const SESSION_KEY = 'hireflow:session';
+
+function stripPassword(user: User): SessionUser {
+  const { password: _pw, ...rest } = user;
+  void _pw;
+  return rest;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [users, setUsers] = useState<StoredUser[]>(() => storage.get<StoredUser[]>(USERS_KEY, []));
-  const [user, setUser] = useState<User | null>(() => storage.get<User | null>(SESSION_KEY, null));
+  const [user, setUser] = useState<SessionUser | null>(null);
 
   useEffect(() => {
-    storage.set(USERS_KEY, users);
-  }, [users]);
-
-  useEffect(() => {
-    storage.set(SESSION_KEY, user);
-  }, [user]);
-
-  const refreshUsers = useCallback(() => {
-    setUsers(storage.get<StoredUser[]>(USERS_KEY, []));
+    const stored = storage.get<SessionUser | null>(SESSION_KEY, null);
+    if (stored) setUser(stored);
   }, []);
 
-  const login = useCallback(
-    (email: string, password: string): AuthResult => {
-      const found = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-      if (!found) return { ok: false, error: 'No account found with that email.' };
-      if (found.password !== password) return { ok: false, error: 'Incorrect password.' };
-      if (found.role === 'hr' && !found.approved) {
-        return { ok: false, error: 'Your HR account is pending approval.', needsApproval: true };
-      }
-      const session: User = {
-        id: found.id,
-        fullName: found.fullName,
-        email: found.email,
-        role: found.role,
-        createdAt: found.createdAt,
-      };
-      setUser(session);
-      return { ok: true, user: session };
-    },
-    [users]
-  );
+  const login = useCallback((email: string, password: string): AuthResult => {
+    const users = storage.get<User[]>(STORAGE_KEYS.users, []);
+    const found = users.find(
+      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password,
+    );
+    if (!found) {
+      return { ok: false, error: 'Invalid email or password.' };
+    }
+    const session = stripPassword(found);
+    storage.set(SESSION_KEY, session);
+    setUser(session);
+    return { ok: true, user: session };
+  }, []);
 
   const signup = useCallback(
-    (input: { fullName: string; email: string; password: string; role: 'hr' | 'public' }): AuthResult => {
-      const exists = users.some((u) => u.email.toLowerCase() === input.email.toLowerCase());
-      if (exists) return { ok: false, error: 'An account with that email already exists.' };
+    (input: { fullName: string; email: string; password: string; role: Role }): AuthResult => {
+      const users = storage.get<User[]>(STORAGE_KEYS.users, []);
+      const pending = storage.get<PendingHrRequest[]>(STORAGE_KEYS.pendingHr, []);
 
-      const newUser: StoredUser = {
-        id: uid(),
-        fullName: input.fullName,
-        email: input.email,
-        role: input.role,
-        password: input.password,
-        approved: input.role === 'public' ? true : false,
-        createdAt: new Date().toISOString(),
-      };
-      setUsers((prev) => [...prev, newUser]);
+      const emailLower = input.email.toLowerCase();
+      if (users.some((u) => u.email.toLowerCase() === emailLower)) {
+        return { ok: false, error: 'An account with this email already exists.' };
+      }
+      if (pending.some((p) => p.email.toLowerCase() === emailLower && p.status === 'pending')) {
+        return { ok: false, error: 'An HR access request for this email is already pending.' };
+      }
 
-      if (newUser.role === 'public') {
-        const session: User = {
-          id: newUser.id,
-          fullName: newUser.fullName,
-          email: newUser.email,
-          role: newUser.role,
-          createdAt: newUser.createdAt,
+      if (input.role === 'public') {
+        const newUser: User = {
+          id: newId(),
+          fullName: input.fullName,
+          email: input.email,
+          password: input.password,
+          role: 'public',
+          createdAt: new Date().toISOString(),
         };
+        storage.set(STORAGE_KEYS.users, [...users, newUser]);
+        const session = stripPassword(newUser);
+        storage.set(SESSION_KEY, session);
         setUser(session);
         return { ok: true, user: session };
       }
 
-      return {
-        ok: true,
-        user: {
-          id: newUser.id,
-          fullName: newUser.fullName,
-          email: newUser.email,
-          role: newUser.role,
-          createdAt: newUser.createdAt,
-        },
-        needsApproval: true,
+      // HR signup → requires approval
+      const request: PendingHrRequest = {
+        id: newId(),
+        fullName: input.fullName,
+        email: input.email,
+        password: input.password,
+        status: 'pending',
+        requestedAt: new Date().toISOString(),
       };
+      storage.set(STORAGE_KEYS.pendingHr, [...pending, request]);
+
+      // Synthetic session-only user so the UI can show "awaiting approval"
+      const placeholder: SessionUser = {
+        id: request.id,
+        fullName: request.fullName,
+        email: request.email,
+        role: 'hr',
+        createdAt: request.requestedAt,
+      };
+      return { ok: true, user: placeholder, needsApproval: true };
     },
-    [users]
+    [],
   );
 
-  const logout = useCallback(() => setUser(null), []);
-
-  const approveUser = useCallback((id: string) => {
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, approved: true } : u)));
-  }, []);
-
-  const rejectUser = useCallback((id: string) => {
-    setUsers((prev) => prev.filter((u) => u.id !== id));
+  const logout = useCallback(() => {
+    storage.remove(SESSION_KEY);
+    setUser(null);
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, users, login, signup, logout, approveUser, rejectUser, refreshUsers }),
-    [user, users, login, signup, logout, approveUser, rejectUser, refreshUsers]
+    () => ({ user, login, signup, logout }),
+    [user, login, signup, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -131,6 +116,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
   return ctx;
 }
