@@ -1,45 +1,46 @@
+import { Link } from 'react-router-dom';
 import Card from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
 import { useJobs } from '@/hooks/useJobs';
-import { formatCurrency, timeAgo } from '@/lib/format';
+import { timeAgo, formatCurrency } from '@/lib/format';
 
 export default function HrApprovalsPage() {
   const { jobs, updateJob } = useJobs();
 
-  const pending = jobs.filter((j) => j.approvalStatus === 'pending');
+  const pending = jobs.filter((j) => j.status === 'pending');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <div>
-        <h1 style={{ fontSize: 24, marginBottom: 4 }}>Job Approvals</h1>
-        <p style={{ color: 'var(--color-text-muted)' }}>Review pending job postings before they go live.</p>
-      </div>
+    <div>
+      <h1 style={{ fontSize: 24, marginBottom: 6 }}>Pending Approvals</h1>
+      <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginBottom: 24 }}>
+        Review and approve job postings submitted by HR teammates.
+      </p>
 
       {pending.length === 0 ? (
-        <EmptyState title="No pending approvals" description="All caught up! Newly submitted jobs will appear here." />
+        <EmptyState
+          title="All caught up"
+          description="There are no job postings waiting for approval right now."
+        />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'grid', gap: 16 }}>
           {pending.map((job) => (
             <Card key={job.id}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                <div style={{ flex: 1, minWidth: 240 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <h3 style={{ fontSize: 16, fontWeight: 600 }}>{job.title}</h3>
-                    <Badge tone="warning">pending</Badge>
-                  </div>
-                  <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                    {job.department} · {job.location} · {formatCurrency(job.salaryMin)}–{formatCurrency(job.salaryMax)}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+                <div>
+                  <Link to={`/jobs/${job.id}`} style={{ fontSize: 16, fontWeight: 600 }}>
+                    {job.title}
+                  </Link>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                    {job.department} · {job.location} · {formatCurrency(job.salaryMin)} – {formatCurrency(job.salaryMax)}
                   </p>
-                  <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                    Submitted by {job.postedByName} · {timeAgo(job.postedAt)}
+                  <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 6 }}>
+                    Submitted {timeAgo(job.postedAt)}
                   </p>
-                  <p style={{ fontSize: 13, marginTop: 8 }}>{job.description}</p>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <Button size="sm" onClick={() => updateJob(job.id, { approvalStatus: 'approved', status: 'open' })}>Approve</Button>
-                  <Button size="sm" variant="danger" onClick={() => updateJob(job.id, { approvalStatus: 'rejected', status: 'closed' })}>Reject</Button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Button size="sm" onClick={() => updateJob(job.id, { status: 'open' })}>Approve</Button>
+                  <Button size="sm" variant="danger" onClick={() => updateJob(job.id, { status: 'closed' })}>Reject</Button>
                 </div>
               </div>
             </Card>
