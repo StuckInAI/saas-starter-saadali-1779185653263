@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
-import Card from '@/components/ui/Card';
+import { useAuth } from '@/hooks/useAuth';
 import { useJobs } from '@/hooks/useJobs';
 import { useApplications } from '@/hooks/useApplications';
-import { useAuth } from '@/hooks/useAuth';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
 
 export default function HrDashboardPage() {
   const { user } = useAuth();
@@ -10,60 +11,50 @@ export default function HrDashboardPage() {
   const { applications } = useApplications();
 
   const myJobs = jobs.filter((j) => j.postedBy === user?.id);
+  const pendingApprovals = myJobs.filter((j) => j.status === 'pending_approval');
   const openJobs = myJobs.filter((j) => j.status === 'open');
-  const pendingApprovals = myJobs.filter((j) => j.status === 'pending');
   const myJobIds = new Set(myJobs.map((j) => j.id));
-  const relevantApps = applications.filter((a) => myJobIds.has(a.jobId));
-
-  const stats = [
-    { label: 'Open Jobs', value: openJobs.length },
-    { label: 'Pending Approvals', value: pendingApprovals.length },
-    { label: 'Total Applications', value: relevantApps.length },
-    { label: 'All My Jobs', value: myJobs.length },
-  ];
+  const myApplications = applications.filter((a) => myJobIds.has(a.jobId));
 
   return (
-    <div>
-      <h1 style={{ fontSize: 24, marginBottom: 6 }}>Welcome back, {user?.fullName?.split(' ')[0]}</h1>
-      <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginBottom: 24 }}>
-        Here's an overview of your hiring activity.
-      </p>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 32 }}>
-        {stats.map((s) => (
-          <Card key={s.label}>
-            <p style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.label}</p>
-            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 8 }}>{s.value}</p>
-          </Card>
-        ))}
+    <div style={{ display: 'grid', gap: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: 22, marginBottom: 4 }}>Welcome back, {user?.fullName.split(' ')[0]}</h1>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>Here's a snapshot of your hiring pipeline.</p>
+        </div>
+        <Link to="/hr/jobs/new">
+          <Button>Post a new job</Button>
+        </Link>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
         <Card>
-          <h2 style={{ fontSize: 16, marginBottom: 12 }}>Quick actions</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Link to="/hr/jobs/new" style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: 14 }}>+ Post a new job</Link>
-            <Link to="/hr/jobs" style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: 14 }}>Manage existing jobs</Link>
-            <Link to="/hr/approvals" style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: 14 }}>Review pending approvals</Link>
-          </div>
+          <div style={{ color: 'var(--color-text-muted)', fontSize: 12, fontWeight: 600 }}>OPEN JOBS</div>
+          <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{openJobs.length}</div>
         </Card>
-
         <Card>
-          <h2 style={{ fontSize: 16, marginBottom: 12 }}>Recent jobs</h2>
-          {myJobs.length === 0 ? (
-            <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>You haven't posted any jobs yet.</p>
-          ) : (
-            <ul style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {myJobs.slice(0, 5).map((j) => (
-                <li key={j.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                  <Link to={`/jobs/${j.id}`} style={{ fontSize: 13, fontWeight: 500 }}>{j.title}</Link>
-                  <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{j.status}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div style={{ color: 'var(--color-text-muted)', fontSize: 12, fontWeight: 600 }}>PENDING APPROVAL</div>
+          <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{pendingApprovals.length}</div>
+        </Card>
+        <Card>
+          <div style={{ color: 'var(--color-text-muted)', fontSize: 12, fontWeight: 600 }}>APPLICATIONS</div>
+          <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{myApplications.length}</div>
+        </Card>
+        <Card>
+          <div style={{ color: 'var(--color-text-muted)', fontSize: 12, fontWeight: 600 }}>TOTAL JOBS</div>
+          <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{myJobs.length}</div>
         </Card>
       </div>
+
+      <Card>
+        <h2 style={{ fontSize: 16, marginBottom: 12 }}>Quick actions</h2>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <Link to="/hr/jobs"><Button variant="secondary">Manage jobs</Button></Link>
+          <Link to="/hr/jobs/new"><Button variant="secondary">Post a job</Button></Link>
+          <Link to="/hr/approvals"><Button variant="secondary">Review approvals</Button></Link>
+        </div>
+      </Card>
     </div>
   );
 }

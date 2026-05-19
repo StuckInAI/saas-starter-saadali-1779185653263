@@ -1,94 +1,88 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { useJobs } from '@/hooks/useJobs';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { Field, Input, Textarea, Select } from '@/components/ui/Input';
-import { useJobs } from '@/hooks/useJobs';
-import { useAuth } from '@/hooks/useAuth';
+import { Field, Input, Select, Textarea } from '@/components/ui/Input';
+import type { EmploymentType } from '@/types';
+
+const employmentTypes: EmploymentType[] = ['Full-time', 'Part-time', 'Contract', 'Internship'];
 
 export default function HrPostJobPage() {
-  const navigate = useNavigate();
   const { user } = useAuth();
-  const { createJob } = useJobs();
+  const { addJob } = useJobs();
+  const navigate = useNavigate();
 
   const [title, setTitle] = useState('');
   const [department, setDepartment] = useState('');
   const [location, setLocation] = useState('');
-  const [employmentType, setEmploymentType] = useState('Full-time');
-  const [salaryMin, setSalaryMin] = useState('60000');
-  const [salaryMax, setSalaryMax] = useState('90000');
+  const [employmentType, setEmploymentType] = useState<EmploymentType>('Full-time');
+  const [salaryMin, setSalaryMin] = useState(80000);
+  const [salaryMax, setSalaryMax] = useState(120000);
   const [description, setDescription] = useState('');
   const [requirements, setRequirements] = useState('');
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!user) return;
-
-    createJob({
+    addJob({
       title,
       department,
       location,
       employmentType,
-      salaryMin: Number(salaryMin),
-      salaryMax: Number(salaryMax),
+      salaryMin,
+      salaryMax,
       description,
-      requirements,
+      requirements: requirements.split('\n').map((r) => r.trim()).filter(Boolean),
       postedBy: user.id,
     });
-
     navigate('/hr/jobs');
   };
 
   return (
-    <div>
-      <h1 style={{ fontSize: 24, marginBottom: 6 }}>Post a new job</h1>
-      <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginBottom: 24 }}>
-        Fill out the details below. Your posting will be sent for approval before going live.
+    <div style={{ maxWidth: 720, margin: '0 auto' }}>
+      <h1 style={{ fontSize: 22, marginBottom: 4 }}>Post a new job</h1>
+      <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginBottom: 20 }}>
+        New postings are submitted for approval before going live.
       </p>
-
       <Card>
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 16 }}>
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }}>
           <Field label="Job title">
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="e.g. Senior Frontend Engineer" />
+            <Input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Senior Product Designer" />
           </Field>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Field label="Department">
-              <Input value={department} onChange={(e) => setDepartment(e.target.value)} required placeholder="Engineering" />
+              <Input required value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Design" />
             </Field>
             <Field label="Location">
-              <Input value={location} onChange={(e) => setLocation(e.target.value)} required placeholder="Remote · NYC" />
+              <Input required value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Remote · US" />
             </Field>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
             <Field label="Employment type">
-              <Select value={employmentType} onChange={(e) => setEmploymentType(e.target.value)}>
-                <option>Full-time</option>
-                <option>Part-time</option>
-                <option>Contract</option>
-                <option>Internship</option>
+              <Select value={employmentType} onChange={(e) => setEmploymentType(e.target.value as EmploymentType)}>
+                {employmentTypes.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
               </Select>
             </Field>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-            <Field label="Salary min (USD)">
-              <Input type="number" value={salaryMin} onChange={(e) => setSalaryMin(e.target.value)} required />
+            <Field label="Salary min">
+              <Input type="number" required value={salaryMin} onChange={(e) => setSalaryMin(Number(e.target.value))} />
             </Field>
-            <Field label="Salary max (USD)">
-              <Input type="number" value={salaryMax} onChange={(e) => setSalaryMax(e.target.value)} required />
+            <Field label="Salary max">
+              <Input type="number" required value={salaryMax} onChange={(e) => setSalaryMax(Number(e.target.value))} />
             </Field>
           </div>
-
           <Field label="Description">
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} required placeholder="Describe the role, team, and impact." />
+            <Textarea required value={description} onChange={(e) => setDescription(e.target.value)} />
           </Field>
-
-          <Field label="Requirements" hint="One requirement per line">
-            <Textarea value={requirements} onChange={(e) => setRequirements(e.target.value)} required placeholder={'5+ years of React experience\nStrong TypeScript skills'} />
+          <Field label="Requirements" hint="One per line">
+            <Textarea value={requirements} onChange={(e) => setRequirements(e.target.value)} placeholder={'3+ years experience\nStrong communication'} />
           </Field>
-
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button type="button" variant="ghost" onClick={() => navigate(-1)}>Cancel</Button>
+            <Button type="button" variant="secondary" onClick={() => navigate('/hr/jobs')}>Cancel</Button>
             <Button type="submit">Submit for approval</Button>
           </div>
         </form>

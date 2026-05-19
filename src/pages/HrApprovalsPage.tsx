@@ -1,52 +1,69 @@
-import { Link } from 'react-router-dom';
+import { useJobs } from '@/hooks/useJobs';
+import { useAuth } from '@/hooks/useAuth';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
-import { useJobs } from '@/hooks/useJobs';
-import { timeAgo, formatCurrency } from '@/lib/format';
+import Badge from '@/components/ui/Badge';
 
 export default function HrApprovalsPage() {
   const { jobs, updateJob } = useJobs();
-
-  const pending = jobs.filter((j) => j.status === 'pending');
+  const { users, approveUser, rejectUser } = useAuth();
+  const pending = jobs.filter((j) => j.status === 'pending_approval');
+  const pendingHr = users.filter((u) => u.role === 'hr' && !u.approved);
 
   return (
-    <div>
-      <h1 style={{ fontSize: 24, marginBottom: 6 }}>Pending Approvals</h1>
-      <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginBottom: 24 }}>
-        Review and approve job postings submitted by HR teammates.
-      </p>
+    <div style={{ display: 'grid', gap: 24 }}>
+      <div>
+        <h1 style={{ fontSize: 22, marginBottom: 4 }}>Approvals</h1>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>
+          Review pending HR signups and job postings.
+        </p>
+      </div>
 
-      {pending.length === 0 ? (
-        <EmptyState
-          title="All caught up"
-          description="There are no job postings waiting for approval right now."
-        />
-      ) : (
-        <div style={{ display: 'grid', gap: 16 }}>
-          {pending.map((job) => (
-            <Card key={job.id}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+      <section style={{ display: 'grid', gap: 12 }}>
+        <h2 style={{ fontSize: 16 }}>Pending HR accounts</h2>
+        {pendingHr.length === 0 ? (
+          <EmptyState title="No pending HR accounts" description="New HR signups will appear here for approval." />
+        ) : (
+          pendingHr.map((u) => (
+            <Card key={u.id}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                 <div>
-                  <Link to={`/jobs/${job.id}`} style={{ fontSize: 16, fontWeight: 600 }}>
-                    {job.title}
-                  </Link>
-                  <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                    {job.department} · {job.location} · {formatCurrency(job.salaryMin)} – {formatCurrency(job.salaryMax)}
-                  </p>
-                  <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 6 }}>
-                    Submitted {timeAgo(job.postedAt)}
-                  </p>
+                  <strong>{u.fullName}</strong>
+                  <div style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>{u.email}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <Button size="sm" onClick={() => updateJob(job.id, { status: 'open' })}>Approve</Button>
-                  <Button size="sm" variant="danger" onClick={() => updateJob(job.id, { status: 'closed' })}>Reject</Button>
+                  <Button variant="secondary" size="sm" onClick={() => rejectUser(u.id)}>Reject</Button>
+                  <Button size="sm" onClick={() => approveUser(u.id)}>Approve</Button>
                 </div>
               </div>
             </Card>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </section>
+
+      <section style={{ display: 'grid', gap: 12 }}>
+        <h2 style={{ fontSize: 16 }}>Pending job postings</h2>
+        {pending.length === 0 ? (
+          <EmptyState title="No jobs awaiting approval" description="Newly drafted jobs that require review will show up here." />
+        ) : (
+          pending.map((j) => (
+            <Card key={j.id}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                <div>
+                  <strong>{j.title}</strong>
+                  <div style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>{j.department} · {j.location}</div>
+                  <div style={{ marginTop: 6 }}><Badge tone="warning">pending approval</Badge></div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Button variant="secondary" size="sm" onClick={() => updateJob(j.id, { status: 'closed' })}>Reject</Button>
+                  <Button size="sm" onClick={() => updateJob(j.id, { status: 'open' })}>Approve</Button>
+                </div>
+              </div>
+            </Card>
+          ))
+        )}
+      </section>
     </div>
   );
 }

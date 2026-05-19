@@ -1,75 +1,74 @@
-import { storage } from '@/lib/storage';
-import type { Job, User } from '@/types';
+import { storage } from './storage';
+import { uid } from './id';
+import type { Application, Job, User } from '@/types';
 
-const SEED_FLAG = 'hireflow.seeded.v1';
+type StoredUser = User & { password: string };
 
-export function seedIfEmpty(): void {
-  if (localStorage.getItem(SEED_FLAG)) return;
+export function seedIfEmpty() {
+  const existingUsers = storage.get<StoredUser[]>('users', []);
+  if (existingUsers.length > 0) return;
 
-  const now = new Date().toISOString();
-  const adminId = 'u_admin_seed';
-  const hrId = 'u_hr_seed';
+  const hrId = uid('user');
+  const applicantId = uid('user');
 
-  const users: User[] = [
-    {
-      id: adminId,
-      email: 'admin@hireflow.app',
-      password: 'admin123',
-      fullName: 'System Admin',
-      role: 'hr',
-      hrStatus: 'approved',
-      createdAt: now,
-    },
+  const users: StoredUser[] = [
     {
       id: hrId,
-      email: 'sara.hr@hireflow.app',
+      fullName: 'Avery Chen',
+      email: 'hr@hireflow.test',
       password: 'password',
-      fullName: 'Sara Mitchell',
       role: 'hr',
-      hrStatus: 'approved',
-      createdAt: now,
+      approved: true,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: applicantId,
+      fullName: 'Jordan Reyes',
+      email: 'applicant@hireflow.test',
+      password: 'password',
+      role: 'public',
+      approved: true,
+      createdAt: new Date().toISOString(),
     },
   ];
 
+  const now = Date.now();
   const jobs: Job[] = [
     {
-      id: 'j_seed_1',
+      id: uid('job'),
       title: 'Senior Frontend Engineer',
       department: 'Engineering',
-      location: 'Remote',
-      employmentType: 'Full-time',
-      salaryMin: 110000,
-      salaryMax: 150000,
+      location: 'Remote · US',
       description:
-        'Build delightful user interfaces for our hiring platform. Collaborate with designers and backend engineers to ship features end-to-end.',
-      requirements:
-        '5+ years of React experience. Strong TypeScript skills. Experience with design systems and accessibility.',
-      deadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString().slice(0, 10),
-      postedById: hrId,
-      postedAt: now,
+        'Build delightful product experiences with React, TypeScript, and a strong design sensibility. Partner closely with designers and PMs to ship weekly.',
+      employmentType: 'Full-time',
+      salaryMin: 140000,
+      salaryMax: 180000,
+      requirements: ['5+ years building production React apps', 'Strong TypeScript fundamentals', 'Product-minded'],
+      postedBy: hrId,
+      postedAt: new Date(now - 1000 * 60 * 60 * 24 * 2).toISOString(),
       status: 'open',
     },
     {
-      id: 'j_seed_2',
-      title: 'People Operations Specialist',
-      department: 'Human Resources',
+      id: uid('job'),
+      title: 'People Operations Lead',
+      department: 'People',
       location: 'New York, NY',
-      employmentType: 'Full-time',
-      salaryMin: 65000,
-      salaryMax: 85000,
       description:
-        'Support our growing team with onboarding, employee engagement, and HR program execution.',
-      requirements:
-        '2+ years in HR or People Ops. Excellent communication. HRIS familiarity preferred.',
-      deadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 20).toISOString().slice(0, 10),
-      postedById: hrId,
-      postedAt: now,
+        'Own the employee lifecycle end-to-end, from onboarding to engagement. Help us scale a healthy, high-performing culture.',
+      employmentType: 'Full-time',
+      salaryMin: 110000,
+      salaryMax: 140000,
+      requirements: ['3+ years in People Ops', 'Excellent communication', 'Comfort with HRIS tools'],
+      postedBy: hrId,
+      postedAt: new Date(now - 1000 * 60 * 60 * 24 * 5).toISOString(),
       status: 'open',
     },
   ];
 
-  storage.setUsers(users);
-  storage.setJobs(jobs);
-  storage.setApplications([]);
-  localStorage.setItem(SEED_FLAG, '1');
+  const applications: Application[] = [];
+
+  storage.set('users', users);
+  storage.set('jobs', jobs);
+  storage.set('applications', applications);
 }

@@ -1,20 +1,22 @@
-export type Role = 'public' | 'hr';
-
-export type HrStatus = 'pending' | 'approved' | 'rejected';
+export type UserRole = 'hr' | 'public';
 
 export type EmploymentType = 'Full-time' | 'Part-time' | 'Contract' | 'Internship';
 
-export type JobStatus = 'open' | 'closed';
+export type JobStatus = 'open' | 'closed' | 'pending_approval';
 
-export type ApplicationStatus = 'new' | 'reviewing' | 'shortlisted' | 'rejected' | 'hired';
+export type ApplicationStatus =
+  | 'submitted'
+  | 'reviewing'
+  | 'interview'
+  | 'hired'
+  | 'rejected';
 
 export interface User {
   id: string;
   email: string;
-  password: string;
   fullName: string;
-  role: Role;
-  hrStatus?: HrStatus;
+  role: UserRole;
+  approved: boolean;
   createdAt: string;
 }
 
@@ -23,26 +25,24 @@ export interface Job {
   title: string;
   department: string;
   location: string;
+  description: string;
   employmentType: EmploymentType;
   salaryMin: number;
   salaryMax: number;
-  description: string;
-  requirements?: string;
-  deadline?: string;
-  status: JobStatus;
+  requirements: string[];
+  postedBy: string;
   postedAt: string;
-  postedBy?: string;
+  status: JobStatus;
 }
 
 export interface Application {
   id: string;
   jobId: string;
-  userId?: string;
-  fullName: string;
-  email: string;
-  phone?: string;
-  resumeUrl?: string;
-  coverLetter?: string;
+  applicantId: string;
+  applicantName: string;
+  applicantEmail: string;
+  coverLetter: string;
+  resumeFileName: string;
   status: ApplicationStatus;
   appliedAt: string;
 }

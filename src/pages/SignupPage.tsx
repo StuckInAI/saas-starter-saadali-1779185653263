@@ -1,76 +1,78 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { Field, Input, Select } from '@/components/ui/Input';
-import { useAuth } from '@/hooks/useAuth';
+import type { UserRole } from '@/types';
+import styles from './AuthPage.module.css';
 
 export default function SignupPage() {
-  const navigate = useNavigate();
   const { signup } = useAuth();
-
+  const navigate = useNavigate();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'public' | 'hr'>('public');
-  const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
+  const [role, setRole] = useState<UserRole>('public');
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    setError('');
-    setInfo('');
+    setError(null);
     const result = signup({ fullName, email, password, role });
     if (!result.ok) {
       setError(result.error);
       return;
     }
     if (result.needsApproval) {
-      setInfo('Your HR account has been created and is pending approval. You can sign in now.');
-      setTimeout(() => navigate('/login'), 1500);
+      setPending(true);
       return;
     }
     navigate('/');
   };
 
-  return (
-    <div style={{ maxWidth: 460, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, marginBottom: 6, textAlign: 'center' }}>Create your account</h1>
-      <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginBottom: 24, textAlign: 'center' }}>
-        Join HireFlow as an applicant or HR teammate.
-      </p>
+  if (pending) {
+    return (
+      <div className={styles.wrap}>
+        <Card className={styles.card}>
+          <h1 className={styles.title}>Account pending approval</h1>
+          <p className={styles.subtitle}>
+            Your HR account has been created and is awaiting approval from an existing admin. You'll be able to sign in once approved.
+          </p>
+          <Link to="/login"><Button>Back to sign in</Button></Link>
+        </Card>
+      </div>
+    );
+  }
 
-      <Card>
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 16 }}>
+  return (
+    <div className={styles.wrap}>
+      <Card className={styles.card}>
+        <h1 className={styles.title}>Create an account</h1>
+        <p className={styles.subtitle}>Join HireFlow to apply for roles or hire great people.</p>
+        <form onSubmit={handleSubmit} className={styles.form}>
           <Field label="Full name">
-            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+            <Input required value={fullName} onChange={(e) => setFullName(e.target.value)} />
           </Field>
           <Field label="Email">
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+            <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
           </Field>
-          <Field label="Password" hint="At least 6 characters">
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete="new-password" />
+          <Field label="Password" error={error ?? undefined}>
+            <Input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
           </Field>
-          <Field label="Account type">
-            <Select value={role} onChange={(e) => setRole(e.target.value as 'public' | 'hr')}>
-              <option value="public">Applicant</option>
-              <option value="hr">HR / Hiring Manager</option>
+          <Field label="I am a...">
+            <Select value={role} onChange={(e) => setRole(e.target.value as UserRole)}>
+              <option value="public">Job seeker</option>
+              <option value="hr">HR / Recruiter</option>
             </Select>
           </Field>
-
-          {error && (
-            <p style={{ color: 'var(--color-danger)', fontSize: 13, fontWeight: 500 }}>{error}</p>
-          )}
-          {info && (
-            <p style={{ color: 'var(--color-success)', fontSize: 13, fontWeight: 500 }}>{info}</p>
-          )}
-
           <Button type="submit">Create account</Button>
-          <p style={{ fontSize: 13, color: 'var(--color-text-muted)', textAlign: 'center' }}>
-            Already have an account? <Link to="/login" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>Sign in</Link>
-          </p>
         </form>
+        <p className={styles.footer}>
+          Already have an account? <Link to="/login">Sign in</Link>
+        </p>
       </Card>
     </div>
   );
