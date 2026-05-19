@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
 import { Field, Input } from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
 import styles from './AuthPage.module.css';
@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     setError('');
     const result = login(email, password);
@@ -28,28 +28,30 @@ export default function LoginPage() {
     <div className={styles.wrap}>
       <Card className={styles.card}>
         <h1 className={styles.title}>Welcome back</h1>
-        <p className={styles.subtitle}>Sign in to continue to HireFlow</p>
-
-        <form className={styles.form} onSubmit={handleSubmit}>
+        <p className={styles.subtitle}>Sign in to continue to HireFlow.</p>
+        <form onSubmit={handleSubmit} className={styles.form}>
           <Field label="Email">
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" required />
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="you@example.com"
+            />
           </Field>
-          <Field label="Password">
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
+          <Field label="Password" error={error || undefined}>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
           </Field>
-          {error && <div className={styles.error}>{error}</div>}
           <Button type="submit">Sign in</Button>
         </form>
-
-        <div className={styles.helper}>
+        <p className={styles.footer}>
           New here? <Link to="/signup">Create an account</Link>
-        </div>
-
-        <div className={styles.demoBox}>
-          <strong>Demo accounts</strong>
-          <span>Admin / HR: <code>admin@hireflow.app</code> / <code>admin123</code></span>
-          <span>HR: <code>sara.hr@hireflow.app</code> / <code>password</code></span>
-        </div>
+        </p>
       </Card>
     </div>
   );
