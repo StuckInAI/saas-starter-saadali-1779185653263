@@ -1,0 +1,132 @@
+.header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-6);
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 700;
+}
+
+.logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--color-primary);
+  color: white;
+  display: grid;
+  place-items: center;
+}
+
+.brandName {
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 1;
+}
+
+.navLink {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-weight: 500;
+  font-size: 14px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.navLink:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+.navLinkActive {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.userBadge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.userBadge strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.roleTag {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.logoutBtn,
+.linkBtn,
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.logoutBtn {
+  color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+}
+.logoutBtn:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.linkBtn {
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid var(--color-border);
+}
+.linkBtn:hover { background: var(--color-surface-alt); }
+
+.primaryBtn {
+  background: var(--color-primary);
+  color: white;
+}
+.primaryBtn:hover { background: var(--color-primary-hover); }
+
+@media (max-width: 768px) {
+  .nav { display: none; }
+  .userBadge strong { display: none; }
+  .roleTag { display: none; }
+}
