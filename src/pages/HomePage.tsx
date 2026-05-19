@@ -1,100 +1,88 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, BarChart3, Briefcase, ShieldCheck, Users } from 'lucide-react';
-import { storage } from '@/lib/storage';
+import { ArrowRight, Briefcase, Users } from 'lucide-react';
+import { storage, STORAGE_KEYS } from '@/lib/storage';
+import type { Application, Job } from '@/types';
+import JobCard from '@/components/jobs/JobCard';
 import styles from './HomePage.module.css';
 
 export default function HomePage() {
-  const jobs = storage.getJobs().filter((j) => j.status === 'open');
-  const applications = storage.getApplications();
+  const jobs = storage.get<Job[]>(STORAGE_KEYS.jobs, []).filter((j) => j.status === 'open');
+  const applications = storage.get<Application[]>(STORAGE_KEYS.applications, []);
+  const featured = jobs.slice(0, 3);
 
   return (
-    <div className={styles.wrap}>
+    <div className={styles.page}>
       <section className={styles.hero}>
-        <div className={styles.heroText}>
-          <span className={styles.eyebrow}>Hiring management, simplified</span>
-          <h1 className={styles.title}>Find your next great hire — or your next great role.</h1>
-          <p className={styles.lede}>
-            HireFlow gives HR teams a streamlined way to post roles, review applicants, and move
-            candidates through the pipeline. Job seekers can apply in minutes, no account required.
+        <div className={styles.heroContent}>
+          <span className={styles.eyebrow}>HireFlow · Modern hiring</span>
+          <h1 className={styles.title}>Find your next role. Hire your next teammate.</h1>
+          <p className={styles.subtitle}>
+            A streamlined platform connecting great people with great companies. Browse open roles, apply in minutes,
+            and let HR teams move candidates forward with clarity.
           </p>
-          <div className={styles.ctas}>
+          <div className={styles.actions}>
             <Link to="/jobs" className={styles.primaryCta}>
-              Browse open roles <ArrowRight size={16} />
+              Browse open roles
+              <ArrowRight size={16} />
             </Link>
-            <Link to="/signup" className={styles.secondaryCta}>Create an account</Link>
+            <Link to="/signup" className={styles.secondaryCta}>
+              Create an account
+            </Link>
           </div>
-          <div className={styles.stats}>
+        </div>
+        <div className={styles.heroStats}>
+          <div className={styles.statCard}>
+            <Briefcase size={18} />
             <div>
               <strong>{jobs.length}</strong>
               <span>Open roles</span>
             </div>
+          </div>
+          <div className={styles.statCard}>
+            <Users size={18} />
             <div>
               <strong>{applications.length}</strong>
-              <span>Applications received</span>
-            </div>
-            <div>
-              <strong>5</strong>
-              <span>Pipeline stages</span>
-            </div>
-          </div>
-        </div>
-        <div className={styles.heroArt}>
-          <div className={styles.artCard} style={{ top: 0, left: 0 }}>
-            <Briefcase size={20} />
-            <div>
-              <strong>Senior Frontend Engineer</strong>
-              <span>Engineering · Remote</span>
-            </div>
-          </div>
-          <div className={styles.artCard} style={{ top: 90, left: 80 }}>
-            <Users size={20} />
-            <div>
-              <strong>12 new applicants</strong>
-              <span>This week</span>
-            </div>
-          </div>
-          <div className={styles.artCard} style={{ top: 200, left: 20 }}>
-            <BarChart3 size={20} />
-            <div>
-              <strong>Pipeline health</strong>
-              <span>3 interviews scheduled</span>
+              <span>Applications submitted</span>
             </div>
           </div>
         </div>
       </section>
 
-      <section className={styles.features}>
-        <FeatureCard
-          icon={<Briefcase size={20} />}
-          title="Post & manage jobs"
-          description="HR teams can create rich job listings with department, location, salary, and deadlines."
-        />
-        <FeatureCard
-          icon={<Users size={20} />}
-          title="Guest applications"
-          description="Applicants apply with just an email and resume — no friction, more pipeline."
-        />
-        <FeatureCard
-          icon={<BarChart3 size={20} />}
-          title="Pipeline tracking"
-          description="Move candidates through New → Reviewing → Interviewed → Hired or Rejected."
-        />
-        <FeatureCard
-          icon={<ShieldCheck size={20} />}
-          title="Admin approval"
-          description="HR self-signup is gated by admin approval to keep your team trusted."
-        />
+      <section className={styles.featured}>
+        <div className={styles.sectionHeader}>
+          <h2>Featured openings</h2>
+          <Link to="/jobs" className={styles.viewAll}>
+            View all <ArrowRight size={14} />
+          </Link>
+        </div>
+        {featured.length === 0 ? (
+          <p className={styles.empty}>No open roles right now — check back soon.</p>
+        ) : (
+          <div className={styles.grid}>
+            {featured.map((job) => (
+              <JobCard key={job.id} job={job} />
+            ))}
+          </div>
+        )}
       </section>
-    </div>
-  );
-}
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
-  return (
-    <div className={styles.featureCard}>
-      <div className={styles.featureIcon}>{icon}</div>
-      <h3>{title}</h3>
-      <p>{description}</p>
+      <section className={styles.valueProps}>
+        <h2>Why teams choose HireFlow</h2>
+        <div className={styles.valueGrid}>
+          <div className={styles.valueCard}>
+            <h3>Fast to post</h3>
+            <p>Spin up a role in minutes with structured fields HR teams actually need.</p>
+          </div>
+          <div className={styles.valueCard}>
+            <h3>Clear pipelines</h3>
+            <p>Track every applicant from submission to offer without spreadsheets.</p>
+          </div>
+          <div className={styles.valueCard}>
+            <h3>Approval workflows</h3>
+            <p>Built-in approvals keep new HR users and job posts compliant.</p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

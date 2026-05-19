@@ -1,37 +1,56 @@
 import { useCallback, useEffect, useState } from 'react';
-import { storage } from '@/lib/storage';
+import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { uid } from '@/lib/id';
 import type { Job } from '@/types';
 
 export function useJobs() {
-  const [jobs, setJobs] = useState<Job[]>(() => storage.getJobs());
+  const [jobs, setJobsState] = useState<Job[]>(() => storage.get<Job[]>(STORAGE_KEYS.jobs, []));
 
-  useEffect(() => {
-    storage.setJobs(jobs);
-  }, [jobs]);
+  const persist = useCallback((next: Job[]) => {
+    storage.set<Job[]>(STORAGE_KEYS.jobs, next);
+    setJobsState(next);
+  }, []);
 
   const refresh = useCallback(() => {
-    setJobs(storage.getJobs());
+    setJobsState(storage.get<Job[]>(STORAGE_KEYS.jobs, []));
   }, []);
 
-  const createJob = useCallback((data: Omit<Job, 'id' | 'postedAt' | 'status'>): Job => {
-    const job: Job = {
-      ...data,
-      id: uid('j'),
-      postedAt: new Date().toISOString(),
-      status: 'open',
-    };
-    setJobs((prev) => [job, ...prev]);
-    return job;
-  }, []);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
-  const updateJob = useCallback((id: string, patch: Partial<Job>) => {
-    setJobs((prev) => prev.map((j) => (j.id === id ? { ...j, ...patch } : j)));
-  }, []);
+  const createJob = useCallback(
+    (data: Omit<Job, 'id' | 'status' | 'postedAt'> & { status?: Job['status'] }): Job => {
+      const job: Job = {
+        ...data,
+        id: uid('job'),
+        status: data.status ?? 'open',
+        postedAt: new Date().toISOString(),
+      };
+      const current = storage.get<Job[]>(STORAGE_KEYS.jobs, []);
+      const next = [job, ...current];
+      persist(next);
+      return job;
+    },
+    [persist]
+  );
 
-  const deleteJob = useCallback((id: string) => {
-    setJobs((prev) => prev.filter((j) => j.id !== id));
-  }, []);
+  const updateJob = useCallback(
+    (id: string, patch: Partial<Job>) => {
+      const current = storage.get<Job[]>(STORAGE_KEYS.jobs, []);
+      const next = current.map((j) => (j.id === id ? { ...j, ...patch } : j));
+      persist(next);
+    },
+    [persist]
+  );
+
+  const deleteJob = useCallback(
+    (id: string) => {
+      const current = storage.get<Job[]>(STORAGE_KEYS.jobs, []);
+      persist(current.filter((j) => j.id !== id));
+    },
+    [persist]
+  );
 
   return { jobs, createJob, updateJob, deleteJob, refresh };
 }

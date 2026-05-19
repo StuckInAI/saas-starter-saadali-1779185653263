@@ -1,8 +1,6 @@
-import { useState } from 'react';
-import type { FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { Field, Input } from '@/components/ui/Input';
 import styles from './AuthPage.module.css';
@@ -12,12 +10,15 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setError('');
+    setSubmitting(true);
     const result = login(email, password);
+    setSubmitting(false);
     if (!result.ok) {
       setError(result.error);
       return;
@@ -27,27 +28,30 @@ export default function LoginPage() {
 
   return (
     <div className={styles.wrap}>
-      <Card className={styles.card}>
+      <div className={styles.card}>
         <h1 className={styles.title}>Welcome back</h1>
-        <p className={styles.subtitle}>Sign in to manage your applications or postings.</p>
+        <p className={styles.subtitle}>Sign in to continue to HireFlow.</p>
         <form onSubmit={handleSubmit} className={styles.form}>
           <Field label="Email">
-            <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
           </Field>
-          <Field label="Password" error={error ?? undefined}>
-            <Input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Field label="Password" error={error || undefined}>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+            />
           </Field>
-          <Button type="submit">Sign in</Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting ? 'Signing in…' : 'Sign in'}
+          </Button>
         </form>
-        <p className={styles.footer}>
+        <p className={styles.altLine}>
           New here? <Link to="/signup">Create an account</Link>
         </p>
-        <div className={styles.hint}>
-          <strong>Demo accounts:</strong>
-          <div>HR · hr@hireflow.test / password</div>
-          <div>Applicant · applicant@hireflow.test / password</div>
-        </div>
-      </Card>
+      </div>
     </div>
   );
 }

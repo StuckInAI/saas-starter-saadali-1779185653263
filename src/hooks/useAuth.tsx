@@ -1,100 +1,99 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
-import { storage } from '@/lib/storage';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { uid } from '@/lib/id';
-import type { User, UserRole } from '@/types';
+import type { AuthResult, Role, User } from '@/types';
 
-type AuthContextValue = {
+interface AuthContextValue {
   user: User | null;
   users: User[];
-  login: (email: string, password: string) => { ok: true } | { ok: false; error: string };
-  signup: (input: {
-    fullName: string;
-    email: string;
-    password: string;
-    role: UserRole;
-  }) => { ok: true; needsApproval: boolean } | { ok: false; error: string };
+  login: (email: string, password: string) => AuthResult;
+  signup: (data: { fullName: string; email: string; password: string; role: Role }) => AuthResult & { needsApproval?: boolean };
   logout: () => void;
   approveUser: (id: string) => void;
-  rejectUser: (id: string) => void;
-};
+}
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-type StoredUser = User & { password: string };
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [users, setUsers] = useState<StoredUser[]>(() => storage.get<StoredUser[]>('users', []));
-  const [currentId, setCurrentId] = useState<string | null>(() => storage.get<string | null>('currentUserId', null));
+  const [users, setUsers] = useState<User[]>(() => storage.get<User[]>(STORAGE_KEYS.users, []));
+  const [user, setUser] = useState<User | null>(() => storage.get<User | null>(STORAGE_KEYS.session, null));
 
   useEffect(() => {
-    storage.set('users', users);
-  }, [users]);
+    setUsers(storage.get<User[]>(STORAGE_KEYS.users, []));
+  }, []);
 
-  useEffect(() => {
-    storage.set('currentUserId', currentId);
-  }, [currentId]);
+  const persistUsers = useCallback((next: User[]) => {
+    storage.set<User[]>(STORAGE_KEYS.users, next);
+    setUsers(next);
+  }, []);
 
-  const user = useMemo(() => {
-    if (!currentId) return null;
-    const found = users.find((u) => u.id === currentId);
-    if (!found) return null;
-    const { password: _pw, ...rest } = found;
-    return rest as User;
-  }, [currentId, users]);
-
-  const login: AuthContextValue['login'] = (email, password) => {
-    const found = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-    if (!found) return { ok: false, error: 'No account found with that email.' };
-    if (found.password !== password) return { ok: false, error: 'Incorrect password.' };
-    if (found.role === 'hr' && !found.approved) {
-      return { ok: false, error: 'Your HR account is pending approval.' };
+  const persistSession = useCallback((next: User | null) => {
+    if (next) {
+      storage.set<User>(STORAGE_KEYS.session, next);
+    } else {
+      storage.remove(STORAGE_KEYS.session);
     }
-    setCurrentId(found.id);
-    return { ok: true };
-  };
+    setUser(next);
+  }, []);
 
-  const signup: AuthContextValue['signup'] = ({ fullName, email, password, role }) => {
-    if (users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
-      return { ok: false, error: 'An account with that email already exists.' };
-    }
-    const newUser: StoredUser = {
-      id: uid('user'),
-      fullName,
-      email,
-      password,
-      role,
-      approved: role === 'public' ? true : users.filter((u) => u.role === 'hr' && u.approved).length === 0,
-      createdAt: new Date().toISOString(),
-    };
-    setUsers((prev) => [...prev, newUser]);
-    if (newUser.approved) {
-      setCurrentId(newUser.id);
-    }
-    return { ok: true, needsApproval: !newUser.approved };
-  };
+  const login = useCallback(
+    (email: string, password: string): AuthResult => {
+      const list = storage.get<User[]>(STORAGE_KEYS.users, []);
+      const found = list.find((u) => u.email.toLowerCase() === email.toLowerCase());
+      if (!found) return { ok: false, error: 'No account found with that email.' };
+      if (found.password !== password) return { ok: false, error: 'Incorrect password.' };
+      if (found.role === 'hr' && !found.approved) {
+        return { ok: false, error: 'Your HR account is pending approval.' };
+      }
+      persistSession(found);
+      return { ok: true };
+    },
+    [persistSession]
+  );
 
-  const logout = () => setCurrentId(null);
+  const signup = useCallback(
+    ({ fullName, email, password, role }: { fullName: string; email: string; password: string; role: Role }) => {
+      const list = storage.get<User[]>(STORAGE_KEYS.users, []);
+      if (list.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
+        return { ok: false as const, error: 'An account with that email already exists.' };
+      }
+      const needsApproval = role === 'hr';
+      const newUser: User = {
+        id: uid('user'),
+        fullName,
+        email,
+        password,
+        role,
+        approved: !needsApproval,
+        createdAt: new Date().toISOString(),
+      };
+      const next = [...list, newUser];
+      persistUsers(next);
+      if (!needsApproval) {
+        persistSession(newUser);
+      }
+      return { ok: true as const, needsApproval };
+    },
+    [persistSession, persistUsers]
+  );
 
-  const approveUser = (id: string) => {
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, approved: true } : u)));
-  };
+  const logout = useCallback(() => {
+    persistSession(null);
+  }, [persistSession]);
 
-  const rejectUser = (id: string) => {
-    setUsers((prev) => prev.filter((u) => u.id !== id));
-  };
+  const approveUser = useCallback(
+    (id: string) => {
+      const list = storage.get<User[]>(STORAGE_KEYS.users, []);
+      const next = list.map((u) => (u.id === id ? { ...u, approved: true } : u));
+      persistUsers(next);
+    },
+    [persistUsers]
+  );
 
-  const publicUsers = useMemo(() => users.map(({ password: _pw, ...rest }) => rest as User), [users]);
-
-  const value: AuthContextValue = {
-    user,
-    users: publicUsers,
-    login,
-    signup,
-    logout,
-    approveUser,
-    rejectUser,
-  };
+  const value = useMemo<AuthContextValue>(
+    () => ({ user, users, login, signup, logout, approveUser }),
+    [user, users, login, signup, logout, approveUser]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
