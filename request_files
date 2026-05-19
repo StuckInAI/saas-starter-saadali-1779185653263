@@ -1,0 +1,1 @@
+src/types/index.ts, src/pages/HrApprovalsPage.tsx, src/pages/HrDashboardPage.tsx, src/pages/HrJobApplicationsPage.tsx, src/pages/HrJobsPage.tsx, src/pages/HrPostJobPage.tsx, src/pages/LoginPage.tsx, src/pages/MyApplicationsPage.tsx, src/pages/SignupPage.tsx, src/hooks/useAuth.tsx, src/hooks/useApplications.ts, src/hooks/useJobs.ts, src/lib/seed.ts
