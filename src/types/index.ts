@@ -1,19 +1,19 @@
-export type UserRole = 'hr' | 'public';
-export type HrStatus = 'pending' | 'approved' | 'rejected';
+export type UserRole = 'public' | 'hr';
 
-export type User = {
+export interface User {
   id: string;
   email: string;
   password: string;
   fullName: string;
   role: UserRole;
-  hrStatus?: HrStatus;
   createdAt: string;
-};
+}
 
-export type EmploymentType = 'Full-time' | 'Part-time' | 'Contract' | 'Internship' | 'Temporary';
+export type EmploymentType = 'Full-time' | 'Part-time' | 'Contract' | 'Internship';
 
-export type Job = {
+export type JobStatus = 'open' | 'closed' | 'pending';
+
+export interface Job {
   id: string;
   title: string;
   department: string;
@@ -23,28 +23,29 @@ export type Job = {
   salaryMax: number;
   description: string;
   requirements: string;
-  deadline: string;
+  status: JobStatus;
   postedById: string;
+  postedBy: string;
   postedAt: string;
-  status: 'open' | 'closed';
-};
+}
 
-export type ApplicationStatus = 'new' | 'reviewing' | 'interviewed' | 'rejected' | 'hired';
+export type ApplicationStatus =
+  | 'applied'
+  | 'submitted'
+  | 'reviewing'
+  | 'interviewed'
+  | 'hired'
+  | 'rejected';
 
-export type Application = {
+export interface Application {
   id: string;
   jobId: string;
-  fullName: string;
-  email: string;
-  phone: string;
+  applicantId: string;
+  userId: string;
+  applicantName: string;
+  applicantEmail: string;
+  resume: string;
   coverLetter: string;
-  resumeName: string;
-  resumeDataUrl: string;
   status: ApplicationStatus;
   appliedAt: string;
-};
-
-export type AuthSession = {
-  userId: string;
-  role: UserRole;
-} | null;
+}
